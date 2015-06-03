@@ -1,0 +1,92 @@
+<?php
+
+/**
+* This function defines the URL to the page created etc.
+* See http://api.drupal.org/api/function/hook_menu/6
+*/
+function domainuser_menu() {
+	$items = array();
+
+	$items['domainuser/form'] = array(
+	'title' => t('Reset Your Domain Password'),
+	'page callback' => 'domainuser_form',
+	'access arguments' => array('access content'),
+	'description' => t('A front end UI for resetting your domain password'),
+	'type' => MENU_CALLBACK,
+	); 
+
+	return $items;
+}
+
+/**
+* This function gets called in the browser address bar for:
+* "http://yourhost/domainuser/form" or
+* "http://yourhost/?q=domainuser/form". It will generate
+* a page with this form on it.
+*/
+function domainuser_form() {
+	// This form calls the form builder function via the
+	// drupal_get_form() function which takes the name of this form builder
+	// function as an argument. It returns the results to display the form.
+
+	return drupal_get_form('domainuser_my_form');
+}
+
+/**
+* This function is called the "form builder". It builds the form.
+* Notice, it takes one argument, the $form_state
+*/
+function domainuser_my_form($form_state) {
+	global $user;
+
+	
+	$form['password'] = array(
+		'#type' => 'password',
+		'#title' => t('New Password'),
+		'#description' => t("What do you want your domain password to be for " . getenv('USERDOMAIN') . "\\" . $user->name . "?"),
+		'#size' => 32,
+		'#maxlength' => 32,
+		'#required' => TRUE,
+	);
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+	);
+
+	return $form;
+}
+
+// This adds a handler/function to validate the data entered into the
+// "year of birth" field to make sure it's between the values of 1900
+// and 2000. If not, it displays an error. The value report is // $form_state['values'] (see http&#58;//drupal.org/node/144132#form-state).
+//
+// Notice the name of the function. It is simply the name of the form
+// followed by '_validate'. This is the default validation function.
+function domainuser_my_form_validate($form, &$form_state) {
+	$password = $form_state['values']['password'];
+}
+
+
+
+// Adds a submit handler/function to our form to send a successful
+// completion message to the screen.
+function domainuser_my_form_submit($form, &$form_state) {
+	$password = $form_state['values']['password'];
+
+	global $user;
+	$fulldns = getenv("USERDNSDOMAIN");
+
+	$path = dirname(drupal_get_filename('module', 'domainuser'));
+
+	$command = "powershell.exe \"" . $path . "/reset.ps1\" -username " . $user->name . " -password " . $password;
+	//drupal_set_message(t($command));
+
+	//exec($command);
+	$results = exec($command);
+	drupal_set_message(t($results));
+
+
+	drupal_set_message(t('Your domain account ' . getenv("USERDOMAIN") . "\\" .$user->name . ' password reset.'));
+	
+}
